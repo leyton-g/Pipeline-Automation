@@ -50,7 +50,7 @@ def get_existing_airtable_notes(company_name: str) -> tuple:
     """Returns a tuple of (notes_text, record_id) to enable direct row targeted updates."""
     print(f"🔍 [AIRTABLE READ] Pulling historical CRM logs for company: '{company_name}'...")
     try:
-        formula = "AND(FIND('" + company_name + "', {Name}), OR(FIND('David Malloy', {Sourced By? (Internal)}), FIND('David Malloy', {Diligence Team})))"
+        formula = "AND(FIND('" + company_name + "', {Name}), CURRENT_USER() = 'David Malloy')"
         records = company_table.all(formula=formula)
         if records:
             notes = records[0]['fields'].get("Meeting Notes and Interactions", "")
