@@ -146,7 +146,7 @@ def analyze_and_score_with_gemini(airtable_notes: str, fireflies_transcript: str
                     temperature=0.0,
                 )
             )
-            return response.text.strip()
+        return f"**{response.text.strip()}**"
         except Exception as e:
             if "503" in str(e) and attempt < max_retries - 1:
                 time.sleep(delay)
