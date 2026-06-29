@@ -105,8 +105,7 @@ def analyze_and_score_with_gemini(airtable_notes: str, fireflies_transcript: str
     )
     
     prompt_body = f"""
-    Evaluate this opportunity strictly using a 0 to 10 scale for the scores based on these exact column headers:
-    | Subsection | Weight | Assessment | Score (0–10) |
+    Evaluate this opportunity strictly using a 0 to 10 scale based on the criteria weights provided below.
 
     [GOLD STANDARD SCORING ANCHOR]
     Use this real historical evaluation benchmark to calibrate your scoring rigor:
@@ -129,11 +128,11 @@ def analyze_and_score_with_gemini(airtable_notes: str, fireflies_transcript: str
     1. Alignment (20% Weight) | 2. Market (20% Weight) | 3. Team (25% Weight) | 4. Business Model (10% Weight) | 5. Sector (10% Weight) | 6. Region (15% Weight)
 
     OUTPUT FORMAT RULES:
-    - Output ONLY the Markdown Table with the 6 rows above.
-    - Write a brief, sharp assessment detailing both the strengths and the implicit risks/frictions for each row.
-    - Add a final 7th row named '**Weighted Composite**'. Calculate the mathematical sum of all (Score * Weight) variables and display the final decimal result clearly under the score column.
+    - In your background thinking context, calculate the mathematical sum of all (Score * Weight) variables.
+    - Round the final result to exactly two decimal places.
+    - Output ONLY that final calculated single number (e.g., 7.78).
+    - CRITICAL: Do NOT output a markdown table, do NOT add introductory or concluding sentences, and do NOT use markdown formatting (like bolding or backticks). Just return the plain numeric value.
     """
-    
     max_retries = 3
     delay = 2  
     
@@ -147,7 +146,7 @@ def analyze_and_score_with_gemini(airtable_notes: str, fireflies_transcript: str
                     temperature=0.0,
                 )
             )
-            return response.text
+            return response.text.strip()
         except Exception as e:
             if "503" in str(e) and attempt < max_retries - 1:
                 time.sleep(delay)
