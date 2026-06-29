@@ -2,10 +2,9 @@ import os
 import time
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
-# Make sure to import your specific gemini and airtable clients here
-# e.g., from google import genai ...
 
-app = FastAPI()  # <-- This is what Vercel was losing when the script crashed!
+# FastAPI initialization that Vercel looks for
+app = FastAPI()
 
 class WebhookPayload(BaseModel):
     eventType: str
@@ -65,7 +64,7 @@ def analyze_and_score_with_gemini(airtable_notes: str, fireflies_transcript: str
                     temperature=0.0,
                 )
             )
-            return response.text.strip()
+            return f"**Score: {response.text.strip()} / 10**"
         except Exception as e:
             if "503" in str(e) and attempt < max_retries - 1:
                 time.sleep(delay)
@@ -77,17 +76,15 @@ def analyze_and_score_with_gemini(airtable_notes: str, fireflies_transcript: str
 def process_pipeline(meeting_id: str, company_target: str) -> str:
     scoring_rules = get_live_airtable_scoring_reference()
     
-    # SAFE SEARCH: Look up strictly by the company name column to avoid internal ID mismatch errors
-    formula = f"FIND('{company_target}', {{Name}})"
+    # Clean string extraction formula that bypassed the 422 error
+    formula = "FIND('" + company_target + "', {Name})"
     
-    # Pulling records matching our clean formula
     records = company_table.all(formula=formula)
     
     if not records:
         print(f"⚠️ [NOT FOUND] No row found for {company_target}")
         return None
         
-    # Grab the first matching record
     record = records[0]
     record_id = record['id']
     historical_notes = record['fields'].get('Notes', '')
@@ -111,7 +108,7 @@ async def handle_webhook(payload: WebhookPayload, x_tsv_token: str = Header(None
     if x_tsv_token != os.getenv("TSV_WEBHOOK_SECRET", "my-secret-handshake"):
         raise HTTPException(status_code=401, detail="Invalid handshake token")
         
-    # Clean the company name out of the title string (e.g. "Stark Industries x David Malloy" -> "Stark Industries")
+    # Extract clean target company string out of full name title string
     company_target = payload.title.split(" x ")[0].strip()
     
     result = process_pipeline(payload.meetingId, company_target)
