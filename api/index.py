@@ -16,7 +16,7 @@ app = FastAPI()
 class WebhookPayload(BaseModel):
     eventType: str
     meetingId: str
-    title: str
+    clientReferenceId: str | None = None
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 def get_fireflies_transcript(meeting_id: str) -> str:
