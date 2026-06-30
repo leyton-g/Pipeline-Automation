@@ -19,10 +19,11 @@ class WebhookPayload(BaseModel):
     clientReferenceId: str | None = None
 
 # ── Helpers ───────────────────────────────────────────────────────────────
-def get_fireflies_transcript(meeting_id: str) -> str:
+def get_fireflies_transcript_and_title(meeting_id: str):
     query = """
     query Transcript($id: String!) {
       transcript(id: $id) {
+        title
         sentences {
           text
           speaker_name
@@ -42,25 +43,26 @@ def get_fireflies_transcript(meeting_id: str) -> str:
         )
         resp.raise_for_status()
         data = resp.json()
-        
-        # Fireflies GraphQL returns 200 even on errors, with an "errors" key
+
         if "errors" in data:
             print(f"⚠️ [FIREFLIES] GraphQL errors: {data['errors']}")
-            return ""
-        
-        sentences = data.get("data", {}).get("transcript", {}).get("sentences", [])
+            return "", ""
+
+        transcript_data = data.get("data", {}).get("transcript", {})
+        title = transcript_data.get("title", "Unknown Meeting")
+        sentences = transcript_data.get("sentences", [])
+
         if not sentences:
-            return ""
-        return "\n".join(
+            return "", title
+
+        transcript_text = "\n".join(
             f"{s.get('speaker_name', 'Unknown')}: {s.get('text', '')}"
             for s in sentences
         )
-    except requests.exceptions.HTTPError as e:
-        print(f"❌ [FIREFLIES] HTTP error: {e} | Response: {resp.text}")
-        return ""
+        return transcript_text, title
     except Exception as e:
         print(f"❌ [FIREFLIES] Unexpected error: {e}")
-        return ""
+        return "", ""
 
 # ── AI Scoring ────────────────────────────────────────────────────────────
 def analyze_and_score_with_gemini(fireflies_transcript: str) -> str | None:
