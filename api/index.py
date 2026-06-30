@@ -135,8 +135,8 @@ async def handle_webhook(payload: WebhookPayload, x_tsv_token: str = Header(None
     print(f"💾 [SCORE RESULT] {payload.title} → Score: {score}")  # ADD THIS LINE
 
     return {
-    "status": "success",
-    "meetingId": payload.meetingId,
-    "title": payload.title,
-    "score": score,
-}
+        "status": "success",
+        "meetingId": payload.meetingId,
+        "title": payload.title,
+        "score": score,
+    }
