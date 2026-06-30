@@ -30,25 +30,37 @@ def get_fireflies_transcript(meeting_id: str) -> str:
       }
     }
     """
-    resp = requests.post(
-        "https://api.fireflies.ai/graphql",
-        json={"query": query, "variables": {"id": meeting_id}},
-        headers={
-            "Authorization": f"Bearer {FIREFLIES_API_KEY}",
-            "Content-Type": "application/json",
-        },
-        timeout=30,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    sentences = data.get("data", {}).get("transcript", {}).get("sentences", [])
-    if not sentences:
+    try:
+        resp = requests.post(
+            "https://api.fireflies.ai/graphql",
+            json={"query": query, "variables": {"id": meeting_id}},
+            headers={
+                "Authorization": f"Bearer {FIREFLIES_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        
+        # Fireflies GraphQL returns 200 even on errors, with an "errors" key
+        if "errors" in data:
+            print(f"⚠️ [FIREFLIES] GraphQL errors: {data['errors']}")
+            return ""
+        
+        sentences = data.get("data", {}).get("transcript", {}).get("sentences", [])
+        if not sentences:
+            return ""
+        return "\n".join(
+            f"{s.get('speaker_name', 'Unknown')}: {s.get('text', '')}"
+            for s in sentences
+        )
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ [FIREFLIES] HTTP error: {e} | Response: {resp.text}")
         return ""
-    return "\n".join(
-        f"{s.get('speaker_name', 'Unknown')}: {s.get('text', '')}"
-        for s in sentences
-    )
-
+    except Exception as e:
+        print(f"❌ [FIREFLIES] Unexpected error: {e}")
+        return ""
 
 # ── AI Scoring ────────────────────────────────────────────────────────────
 def analyze_and_score_with_gemini(fireflies_transcript: str) -> str | None:
