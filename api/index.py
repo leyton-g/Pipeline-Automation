@@ -1,7 +1,7 @@
 import os
 import time
 import requests
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 from google import genai
 from google.genai import types
@@ -63,6 +63,25 @@ def get_fireflies_transcript_and_title(meeting_id: str):
     except Exception as e:
         print(f"❌ [FIREFLIES] Unexpected error: {e}")
         return "", ""
+
+
+def send_slack_notification(title: str, score: str, meeting_id: str):
+    slack_webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+    if not slack_webhook_url:
+        print("⚠️ [SLACK] No webhook URL configured, skipping notification.")
+        return
+
+    message = {
+        "text": f"📊 *New Deal Score*\n*Company:* {title}\n*Score:* {score} / 10\n*Meeting ID:* `{meeting_id}`"
+    }
+
+    try:
+        resp = requests.post(slack_webhook_url, json=message, timeout=10)
+        resp.raise_for_status()
+        print("✅ [SLACK] Notification sent.")
+    except Exception as e:
+        print(f"❌ [SLACK] Failed to send notification: {e}")
+
 
 # ── AI Scoring ────────────────────────────────────────────────────────────
 def analyze_and_score_with_gemini(fireflies_transcript: str) -> str | None:
