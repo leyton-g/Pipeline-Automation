@@ -118,13 +118,10 @@ OUTPUT: Return ONLY a single plain number rounded to two decimal places (e.g. 7.
 
 # ── Webhook ───────────────────────────────────────────────────────────────
 @app.post("/webhooks/fireflies")
-async def handle_webhook(payload: WebhookPayload, x_tsv_token: str = Header(None)):
-    if x_tsv_token != os.getenv("TSV_WEBHOOK_SECRET", "my-secret-handshake"):
-        raise HTTPException(status_code=401, detail="Invalid token")
+async def handle_webhook(payload: WebhookPayload):
+    print(f"\n🚀 [PIPELINE] Processing meeting: {payload.meetingId} | Event: {payload.eventType}")
 
-    print(f"\n🚀 [PIPELINE] Processing meeting: {payload.meetingId} | Title: {payload.title}")
-
-    transcript = get_fireflies_transcript(payload.meetingId)
+    transcript, title = get_fireflies_transcript_and_title(payload.meetingId)
     if not transcript:
         return {"status": "error", "message": "Empty or missing transcript."}
 
@@ -132,11 +129,12 @@ async def handle_webhook(payload: WebhookPayload, x_tsv_token: str = Header(None
     if score is None:
         return {"status": "error", "message": "Scoring failed."}
 
-    print(f"💾 [SCORE RESULT] {payload.title} → Score: {score}")
+    print(f"💾 [SCORE RESULT] {title} → Score: {score}")
+    send_slack_notification(title, score, payload.meetingId)
 
     return {
         "status": "success",
         "meetingId": payload.meetingId,
-        "title": payload.title,
+        "title": title,
         "score": score,
     }
