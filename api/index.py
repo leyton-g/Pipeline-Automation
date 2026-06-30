@@ -129,12 +129,14 @@ async def handle_webhook(payload: WebhookPayload, x_tsv_token: str = Header(None
         return {"status": "error", "message": "Empty or missing transcript."}
 
     score = analyze_and_score_with_gemini(transcript)
-    if score is None:
-        return {"status": "error", "message": "Scoring failed."}
+if score is None:
+    return {"status": "error", "message": "Scoring failed."}
 
-    return {
-        "status": "success",
-        "meetingId": payload.meetingId,
-        "title": payload.title,
-        "score": score,
-    }
+print(f"💾 [SCORE RESULT] {payload.title} → Score: {score}")  # ADD THIS LINE
+
+return {
+    "status": "success",
+    "meetingId": payload.meetingId,
+    "title": payload.title,
+    "score": score,
+}
